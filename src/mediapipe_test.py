@@ -63,6 +63,7 @@ def print_summary(fps_list, latency_list, frames, lost, duration):
 def main():
 
     download_model_if_missing()
+    landmarker = create_landmarker()
 
     capture = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
     capture.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
@@ -70,8 +71,6 @@ def main():
     if not capture.isOpened():
         print("Could not open camera.")
         return
-
-    landmarker = create_landmarker()
 
     frame_times = deque(maxlen=WINDOW_FRAMERATE)
     positions = deque(maxlen=WINDOW_FRAMERATE)
@@ -196,13 +195,13 @@ def main():
         elif key == ord("q"):
             break
 
-        if recording:
-            csv_file.close()
-            print_summary(rec_fps_list, rec_latency_list, rec_total_frames, rec_lost_frames, time.time() - rec_start)
+    if recording:
+        csv_file.close()
+        print_summary(rec_fps_list, rec_latency_list, rec_total_frames, rec_lost_frames, time.time() - rec_start)
 
-        capture.release()
-        cv2.destroyAllWindows()
-        landmarker.close()
+    capture.release()
+    cv2.destroyAllWindows()
+    landmarker.close()
 
 
 if __name__ == "__main__":
