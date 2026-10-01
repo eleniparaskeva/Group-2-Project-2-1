@@ -1,0 +1,11 @@
+{
+    "camera_index": 0,
+    "frame_width": 640,
+    "frame_height": 480,
+    "ipd_cm": 6.3,
+    "focal_px": 554.0,
+    "camera_offset_y_cm": 0.0,
+    "smoothing_alpha": 0.4,
+    "model_path": "face_landmarker.task",
+    "model_url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+}
