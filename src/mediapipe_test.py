@@ -121,6 +121,7 @@ def main():
 
         face_found = len(result.face_landmarks) > 0
         mid_x, mid_y = "", "" # empty in csv if no face
+        lx, ly, rx, ry = "", "", "", ""
 
         if face_found:
             landmarks = result.face_landmarks[0]
@@ -169,6 +170,10 @@ def main():
                 round(jitter_y, 3),
                 mid_x,
                 mid_y,
+                lx,
+                ly,
+                rx,
+                ry,
             ])
             csv_file.flush()
 
@@ -178,7 +183,8 @@ def main():
             filename = "recording_" + time.strftime("%Y%m%d_%H%M%S") + ".csv"
             csv_file = open(filename, "w", newline="")
             writer = csv.writer(csv_file)
-            writer.writerow(["time_s", "fps", "latency_ms", "face_found", "total_frames", "lost_frames", "jitter_x", "jitter_y", "mid_x", "mid_y"])
+            writer.writerow(["time_s", "fps", "latency_ms", "face_found", "total_frames", "lost_frames",
+                             "jitter_x", "jitter_y", "mid_x", "mid_y", "left_x", "left_y", "right_x", "right_y"])
             rec_start = time.time()
             rec_total_frames = 0
             rec_lost_frames = 0
