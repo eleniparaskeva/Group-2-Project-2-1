@@ -57,6 +57,7 @@ class EyeTracker:
         self.points = {}
         self.frame = None
         self.position = None
+        self.timestamp = None
         self.ipd_cm = config["ipd_cm"]
         self.focal_px = config["focal_px"]
         self.alpha = config["smoothing_alpha"]
@@ -92,7 +93,7 @@ class EyeTracker:
 
     def update(self):
         ok, self.frame = self.capture.read()
-        timestamp = int(time.monotonic() * 1000)
+        self.timestamp = int(time.monotonic() * 1000)
 
         if not ok:
             print("Could not read frame.")
@@ -104,7 +105,7 @@ class EyeTracker:
         image_format = mediapipe.ImageFormat.SRGB
         mediapipe_image = mediapipe.Image(image_format=image_format, data=rgb)
 
-        result = (self.landmarker.detect_for_video(mediapipe_image, timestamp))
+        result = (self.landmarker.detect_for_video(mediapipe_image, self.timestamp))
         self.face_found = len(result.face_landmarks) > 0
 
         if self.face_found:
@@ -115,6 +116,12 @@ class EyeTracker:
             self.compute_position()
 
         return True
+
+    def get_position(self):
+        return self.position
+
+    def get_result(self):
+        return self.position, self.face_found, self.timestamp
 
 
 def main():
