@@ -1,3 +1,4 @@
+import math
 import os
 import time
 import json
@@ -55,6 +56,33 @@ class EyeTracker:
         self.face_found = False
         self.points = {}
         self.frame = None
+        self.position = None
+        self.ipd_cm = config["ipd_cm"]
+        self.focal_px = config["focal_px"]
+        self.alpha = config["smoothing_alpha"]
+
+    def compute_position(self):
+        if self.face_found:
+            old_position = self.position
+
+            d_px = math.hypot(self.points['left_center'][0] - self.points['right_center'][0], self.points['right_center'][1] - self.points['left_center'][1])
+            z = self.focal_px * self.ipd_cm / d_px
+
+            (mx, my) = ((self.points['left_center'][0] + self.points['right_center'][0]) / 2, (self.points['left_center'][1] + self.points['right_center'][1]) / 2)
+
+            height, width = self.frame.shape[:2]
+            (cx, cy) = (width / 2, height / 2)
+
+            x = -(mx - cx) * z / self.focal_px
+            y = -(my - cy) * z / self.focal_px
+
+
+            if old_position is not None:
+                x = self.alpha * x + (1 - self.alpha) * old_position[0]
+                y = self.alpha * y + (1 - self.alpha) * old_position[1]
+                z = self.alpha * z + (1 - self.alpha) * old_position[2]
+
+            self.position = (x, y, z) # +x = right, +y = up, +z = forward
 
     def close(self):
         self.capture.release()
@@ -84,6 +112,7 @@ class EyeTracker:
             face = result.face_landmarks[0]
             for name, index in LANDMARKS.items():
                 self.points[name] = landmark_to_px(face[index], width, height)
+            self.compute_position()
 
         return True
 
@@ -101,6 +130,9 @@ def main():
                 else:
                     color = (170, 234, 86)
                 draw_point(tracker.frame, point, color)
+            x, y, z = tracker.position
+            text = "x=%.1f  y=%.1f  z=%.1f cm" % (x, y, z)
+            cv2.putText(tracker.frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
         cv2.imshow("tracker", tracker.frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -108,66 +140,6 @@ def main():
 
     tracker.close()
     cv2.destroyAllWindows()
-
-
-'''
-    download_model_if_missing()
-    landmarker = create_landmarker()
-
-    capture = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
-    capture.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
-    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-
-    while True:
-        ok, frame = capture.read()
-        timestamp = int(time.monotonic() * 1000)
-
-        if not ok:
-            print("Could not read frame.")
-            break
-
-        height, width = frame.shape[:2]
-
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        image_format = mediapipe.ImageFormat.SRGB
-        mediapipe_image = mediapipe.Image(image_format=image_format, data=rgb)
-
-        result = landmarker.detect_for_video(mediapipe_image, timestamp)
-        face_found = len(result.face_landmarks) > 0
-
-
-        if face_found:
-            #print("Face found")
-            face = result.face_landmarks[0]
-
-            left_center = landmark_to_px(face[LEFT_CENTER], width, height)
-            left_inner = landmark_to_px(face[LEFT_INNER], width, height)
-            left_outer = landmark_to_px(face[LEFT_OUTER], width, height)
-            right_center = landmark_to_px(face[RIGHT_CENTER], width, height)
-            right_inner = landmark_to_px(face[RIGHT_INNER], width, height)
-            right_outer = landmark_to_px(face[RIGHT_OUTER], width, height)
-
-            print(left_center, left_inner, left_outer, right_center, right_inner, right_outer)
-
-            draw_landmark(frame, left_center[0], left_center[1], 168, 124, 234)
-            draw_landmark(frame, left_inner[0], left_inner[1], 168, 124, 234)
-            draw_landmark(frame, left_outer[0], left_outer[1], 168, 124, 234)
-            draw_landmark(frame, right_center[0], right_center[1], 170, 234, 86)
-            draw_landmark(frame, right_inner[0], right_inner[1], 170, 234, 86)
-            draw_landmark(frame, right_outer[0], right_outer[1], 170, 234, 86)
-
-            cv2.imshow('Eyetracking', frame)
-
-        else:
-            print("Face not found")
-
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    capture.release()
-    cv2.destroyAllWindows()
-'''
 
 if __name__ == "__main__":
     main()
