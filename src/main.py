@@ -1,14 +1,16 @@
+import json
 import threading
 import time
-import random
+from eyetracker import EyeTracker
 
 
 class EyeTrackingResult:
-    def __init__(self, left_x, left_y, right_x, right_y):
-        self.left_x = left_x
-        self.left_y = left_y
-        self.right_x = right_x
-        self.right_y = right_y
+    def __init__(self, x, y, z, face_found, timestamp):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.face_found = face_found
+        self.timestamp = timestamp
 
 
 result_lock = threading.Lock()
@@ -16,22 +18,23 @@ current_eye_tracing_result = None
 
 
 def eye_tracking():
-    while True:
+
+    with open("config.json") as f:
+        config = json.load(f)
+
+    eyetracker = EyeTracker(config)
+
+    while eyetracker.update():
         global current_eye_tracing_result
 
-        # Simulate values for now
-        result = EyeTrackingResult(
-            left_x=random.random(),
-            left_y=random.random(),
-            right_x=random.random(),
-            right_y=random.random(),
-        )
+        if eyetracker.get_position() is None:
+            continue
+        position, face_found, timestamp = eyetracker.get_result()
+        x, y, z = position
+        result = EyeTrackingResult(x, y, z, face_found, timestamp)
 
         with result_lock:
             current_eye_tracing_result = result
-
-        # Simulate 30 FPS
-        time.sleep(0.0333)
 
 
 def rendering():
@@ -43,16 +46,15 @@ def rendering():
         # All rendering and parallax calculations here
         if result_copy is not None:
             print(f"Rendering coordinates "
-                  f"{result_copy.left_x},"
-                  f"{result_copy.left_y}, "
-                  f"{result_copy.right_x}, "
-                  f"{result_copy.right_y}"
+                  f"{result_copy.x},"
+                  f"{result_copy.y}, "
+                  f"{result_copy.z}"
                   )
         else:
             print(f"Result none")
 
         # Simulate 60 Hz
-        time.sleep(0.0166)
+        time.sleep(1)
 
 
 t_eye_tracking = threading.Thread(target=eye_tracking)
