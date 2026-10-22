@@ -31,7 +31,7 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
 
         # Load the anatomical heart
         self.heart = self.loader.loadModel(
-            "models/realistic_human_heart.glb"
+            "../models/realistic_human_heart.glb"
         )
 
         if self.heart.isEmpty():
@@ -41,7 +41,7 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
         self.heart.reparentTo(self.render)
 
         # Scale the heart
-        self.heart.setScale(0.9)
+        self.heart.setScale(11)
 
         # Position the heart
         self.heart.setPos(0, 8, 0)

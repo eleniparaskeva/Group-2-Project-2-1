@@ -1,62 +1,79 @@
 import threading
-import time
-import random
-
-
-class EyeTrackingResult:
-    def __init__(self, left_x, left_y, right_x, right_y):
-        self.left_x = left_x
-        self.left_y = left_y
-        self.right_x = right_x
-        self.right_y = right_y
-
+from eyetracker import EyeTracker, open_config
+from scene_manager import HeartApp
 
 result_lock = threading.Lock()
-current_eye_tracing_result = None
+latest_result = None
+stop_tracking = threading.Event()
 
+def eye_tracking(config):
+    global latest_result
+    tracker = None
 
-def eye_tracking():
-    while True:
-        global current_eye_tracing_result
+    try:
+        tracker = EyeTracker(config)
 
-        # Simulate values for now
-        result = EyeTrackingResult(
-            left_x=random.random(),
-            left_y=random.random(),
-            right_x=random.random(),
-            right_y=random.random(),
-        )
+        while not stop_tracking.is_set():
+            if not tracker.update():
+                break
 
+            result = tracker.get_result()
+
+            with result_lock:
+                latest_result = result
+
+    except Exception as error:
+        print("Eye tracking error:", error)
+
+    finally:
+        if tracker is not None:
+            tracker.close()
+
+def main():
+    config = open_config()
+
+    # values are different for each screen
+    screen_width_cm = 34.5
+    screen_height_cm = 19.4
+    camera_offset_y_cm = 10.7 
+
+    app = HeartApp(
+        screen_width_cm,
+        screen_height_cm,
+        camera_offset_y_cm
+    )
+
+    app.set_head_position((0, -camera_offset_y_cm, 60))
+    
+    def update_view(task):
         with result_lock:
-            current_eye_tracing_result = result
+            result = latest_result
 
-        # Simulate 30 FPS
-        time.sleep(0.0333)
+        if result is not None:
+            position, face_found, timestamp = result
 
+            if face_found and position is not None:
+                app.set_head_position(position)
 
-def rendering():
-    while True:
-        result_lock.acquire()
-        result_copy = current_eye_tracing_result
-        result_lock.release()
+        return task.cont
 
-        # All rendering and parallax calculations here
-        if result_copy is not None:
-            print(f"Rendering coordinates "
-                  f"{result_copy.left_x},"
-                  f"{result_copy.left_y}, "
-                  f"{result_copy.right_x}, "
-                  f"{result_copy.right_y}"
-                  )
-        else:
-            print(f"Result none")
+    app.taskMgr.add(update_view, "receive_tracking", sort=-10)
 
-        # Simulate 60 Hz
-        time.sleep(0.0166)
+    tracking_thread = threading.Thread(
+        target=eye_tracking,
+        args=(config,),
+        daemon=True
+    )
 
+    tracking_thread.start()
+    app.accept("escape", app.userExit)
 
-t_eye_tracking = threading.Thread(target=eye_tracking)
-t_rendering = threading.Thread(target=rendering)
+    try:
+        app.run()
 
-t_eye_tracking.start()
-t_rendering.start()
+    finally:
+        stop_tracking.set()
+        tracking_thread.join(timeout=5)
+        app.destroy()
+
+main()

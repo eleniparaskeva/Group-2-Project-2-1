@@ -3,7 +3,7 @@
     "frame_width": 640,
     "frame_height": 480,
     "ipd_cm": 6.3,
-    "focal_px": 554.0,
+    "focal_px": 559.6,
     "camera_offset_y_cm": 0.0,
     "smoothing_alpha": 0.7,
     "model_path": "face_landmarker.task",
