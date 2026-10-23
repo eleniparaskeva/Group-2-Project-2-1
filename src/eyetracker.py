@@ -123,6 +123,55 @@ class EyeTracker:
     def get_result(self):
         return self.position, self.face_found, self.timestamp
 
+    def visualize(self):
+        if self.frame is None:
+            return False
+
+        image = cv2.flip(self.frame, 1)
+        height, width = image.shape[:2]
+
+        origin = (int(width / 2), int(height / 2))
+        white = (255, 255, 255)
+        gray = (140, 140, 140)
+        spacing = 80
+
+        for x in range(0, width + 1, spacing):
+            cv2.line(image, origin, (x, 0), gray, 1)
+            cv2.line(image, origin, (x, height), gray, 1)
+        for y in range(0, height + 1, spacing):
+            cv2.line(image, origin, (0, y), gray, 1)
+            cv2.line(image, origin, (width, y), gray, 1)
+
+        for k in range(1, 10):
+            half_w = int(width / 2 / k)
+            half_h = int(height / 2 / k)
+            cv2.rectangle(image, (origin[0] - half_w, origin[1] - half_h), (origin[0] + half_w, origin[1] + half_h), gray, 1)
+
+        cv2.arrowedLine(image, (0, origin[1]), (width, origin[1]), white, 1, tipLength=0.03)
+        cv2.arrowedLine(image, (origin[0], height), (origin[0], 0), white, 1, tipLength=0.03)
+        cv2.circle(image, origin, 2, white, -1)
+
+        if self.face_found:
+            left = (width - self.points["left_center"][0], self.points["left_center"][1])
+            right = (width - self.points["right_center"][0], self.points["right_center"][1])
+            cv2.circle(image, (int(left[0]), int(left[1])), 3, (168, 124, 234), -1)
+            cv2.circle(image, (int(right[0]), int(right[1])), 3, (170, 234, 86), -1)
+
+            middle = ((left[0] + right[0]) / 2, (left[1] + right[1]) / 2)
+            cv2.circle(image, (int(middle[0]), int(middle[1])), 5, (159, 252, 246), -1)
+
+            cv2.putText(image, "face found", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        else:
+            cv2.putText(image, "no face", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+        scale = 0.6
+        image = cv2.resize(image, (int(width * scale), int(height * scale)))
+
+        cv2.imshow("webcam", image)
+        if cv2.waitKey(1) == ord('q'):
+            return False
+        return True
+
 
 def main():
 

@@ -17,6 +17,9 @@ def eye_tracking(config):
             if not tracker.update():
                 break
 
+            if config["show_visualization"]:
+                tracker.visualize()
+
             result = tracker.get_result()
 
             with result_lock:
