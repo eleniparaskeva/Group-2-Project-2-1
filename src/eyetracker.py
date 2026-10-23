@@ -11,7 +11,7 @@ from mediapipe.tasks.python import vision
 LANDMARKS = {"left_center": 468, "left_inner": 469, "left_outer": 471, "right_center": 473, "right_inner": 476, "right_outer": 474}
 
 def open_config():
-    with open("config.json") as f:
+    with open("../config.json") as f:
         config = json.load(f)
         return config
 
@@ -163,6 +163,12 @@ class EyeTracker:
             cv2.putText(image, "face found", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         else:
             cv2.putText(image, "no face", (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+        if self.position is not None:
+            x, y, z = self.position
+            cv2.putText(image, "x = %.1f cm" % x, (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (159, 252, 246), 2)
+            cv2.putText(image, "y = %.1f cm" % y, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (159, 252, 246), 2)
+            cv2.putText(image, "z = %.1f cm" % z, (10, 105), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (159, 252, 246), 2)
 
         scale = 0.6
         image = cv2.resize(image, (int(width * scale), int(height * scale)))

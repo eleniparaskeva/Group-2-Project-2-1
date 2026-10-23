@@ -12,7 +12,7 @@ import numpy
 from mediapipe.tasks import python as mediapipe_python
 from mediapipe.tasks.python import vision
 
-with open("config.json") as f:
+with open("../config.json") as f:
     config = json.load(f)
 
 CAMERA_INDEX = config["camera_index"]
