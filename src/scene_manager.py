@@ -31,7 +31,7 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
 
         # Load the anatomical heart
         self.heart = self.loader.loadModel(
-            "../models/realistic_human_heart.glb"
+            "../models/human_heart_internal_structure_3d_model.glb"
         )
 
         if self.heart.isEmpty():
@@ -47,14 +47,14 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
         self.heart.setPos(0, 8, 0)
 
         # Keep the current orientation
-        self.heart.setHpr(0, 0, 0)
+        self.heart.setHpr(-90, 0, 0)
 
         # Temporary color so we can clearly see the geometry
         # self.heart.setColor(0.8, 0.1, 0.1, 1)
         #self.heart.setTwoSided(True)
 
         # Background
-        self.setBackgroundColor(0.08, 0.08, 0.08)
+        self.setBackgroundColor(0.003, 0.012, 0.05)
 
         # Mouse interaction
         self.dragging = False
