@@ -59,6 +59,7 @@ class EyeTracker:
         self.position = None
         self.timestamp = None
         self.ipd_cm = config["ipd_cm"]
+        self.hvid_cm = config["hvid_cm"]
         self.focal_px = config["focal_px"]
         self.alpha = config["smoothing_alpha"]
 
@@ -66,17 +67,24 @@ class EyeTracker:
         if self.face_found:
             old_position = self.position
 
-            d_px = math.hypot(self.points['left_center'][0] - self.points['right_center'][0], self.points['right_center'][1] - self.points['left_center'][1])
-            z = self.focal_px * self.ipd_cm / d_px
+            hvid_l = math.hypot(self.points['left_inner'][0] - self.points['left_outer'][0], self.points['left_inner'][1] - self.points['left_outer'][1])
+            hvid_r = math.hypot(self.points['right_inner'][0] - self.points['right_outer'][0], self.points['right_inner'][1] - self.points['right_outer'][1])
+            avg_hvid_px = (hvid_l + hvid_r) / 2
+            print('left diameter: %s, right diameter: %s, avg diameter: %s' % (hvid_l, hvid_r, avg_hvid_px))
+            ipd_px = math.hypot(self.points['left_center'][0] - self.points['right_center'][0], self.points['right_center'][1] - self.points['left_center'][1])
+            print('inter pupil distance: %s' % ipd_px)
+            z_ipd = self.focal_px * self.ipd_cm / ipd_px
+            z_hvid = self.focal_px * self.hvid_cm / avg_hvid_px
+            print('z from ipd: %s, z from hvid: %s' % (z_ipd, z_hvid))
 
             (mx, my) = ((self.points['left_center'][0] + self.points['right_center'][0]) / 2, (self.points['left_center'][1] + self.points['right_center'][1]) / 2)
 
             height, width = self.frame.shape[:2]
             (cx, cy) = (width / 2, height / 2)
 
-            x = -(mx - cx) * z / self.focal_px
-            y = -(my - cy) * z / self.focal_px
-
+            x = -(mx - cx) * z_hvid / self.focal_px
+            y = -(my - cy) * z_hvid / self.focal_px
+            z = z_hvid
 
             if old_position is not None:
                 x = self.alpha * x + (1 - self.alpha) * old_position[0]
