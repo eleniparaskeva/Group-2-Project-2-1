@@ -1,5 +1,5 @@
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import AmbientLight, DirectionalLight, TransparencyAttrib
+from panda3d.core import AmbientLight, DirectionalLight, TransparencyAttrib, PointLight
 import simplepbr
 from parallax import apply_parallax
 
@@ -29,6 +29,9 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
         directional_np.setHpr(-45, -30, 0)
         render.setLight(directional_np)
 
+        #Create a parent for the anatomical models
+        self.anatomy = self.render.attachNewNode("anatomy")
+        
         # Load the anatomical heart
         self.heart = self.loader.loadModel(
             "../models/human_heart_internal_structure_3d_model.glb"
@@ -38,49 +41,62 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
             print("ERROR: Heart model could not be loaded.")
             return
 
-        self.heart.reparentTo(self.render)
+        self.heart.reparentTo(self.anatomy)
 
         # Scale the heart
-        self.heart.setScale(11)
+        self.heart.setScale(7)
 
         # Position the heart
-        self.heart.setPos(0, 8, 0)
+        self.heart.setPos(5, 10, 2)
 
         # Keep the current orientation
         self.heart.setHpr(-90, 0, 0)
 
+        #Load the ribcage 
+        self.ribs = self.loader.loadModel(
+            "../models/chest.glb"
+        )
+
+        if self.ribs.isEmpty():
+            print("ERROR:Ribs model could not be loaded.")
+        else: 
+            self.ribs.reparentTo(self.anatomy)
+
+        #Initial scale and position (will need adjustment)
+        self.ribs.setScale(40)
+        self.ribs.setPos(2, 8, 0)
+        self.ribs.setHpr(0, 0, 0)
+
+        #make the rib cage semi-transparent 
+        self.ribs.setTransparency(TransparencyAttrib.MAlpha)
+
+        #light blue colour with trannsparency
+        self.ribs.setColor(0.55, 0.85, 1.0, 1.0)
+
+        #enable transparency 
+        self.ribs.setAlphaScale(0.35)
+
+        #left blue side light (we can remove it we don't like it )
+        left_light = PointLight("left_blue_light")
+        left_light.setColor((0.35, 0.7, 1.0, 1))
+
+        left_light_np = self.anatomy.attachNewNode(left_light)
+        left_light_np.setPos(-12, 0, 0)
+
+        self.ribs.setLight(left_light_np)
+
+        #right blue side light 
+        right_light = PointLight("right_blue_light")
+        right_light.setColor((0.35, 0.7, 1.0, 1))
+
+        right_light_np = self.anatomy.attachNewNode(right_light)
+        right_light_np.setPos(12, 0, 0)
+
+        self.ribs.setLight(right_light_np)
+
         # Temporary color so we can clearly see the geometry
         # self.heart.setColor(0.8, 0.1, 0.1, 1)
         #self.heart.setTwoSided(True)
-
-        self.body = self.loader.loadModel("../models/human_body_base_mesh_male.glb")
-        self.body.reparentTo(self.render)
-
-        # Remove original skin textures of the model
-        self.body.setTextureOff(10)
-        self.body.setMaterialOff(10)
-        self.body.setShaderOff(10)
-        self.body.setLightOff(10)
-
-        # Transparent blue surface
-        self.body.setTransparency(TransparencyAttrib.MAlpha, 10)
-        self.body.setColor(0.15, 0.7, 1.0, 0.025, 10)
-        self.body.setDepthWrite(False, 10)
-
-        # size
-        lower, upper = self.body.getTightBounds()
-        height = upper.z - lower.z
-        body_scale = 90 / height
-
-        self.body.setScale(body_scale)
-
-        # Centre the model
-        centre = (lower + upper) * 0.5
-        self.body.setPos(
-            -centre.x * body_scale,
-            8 - centre.y * body_scale,
-            -22 - centre.z * body_scale
-        )
 
         # Background
         self.setBackgroundColor(0.003, 0.012, 0.05)
@@ -93,7 +109,7 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
         self.accept("mouse1", self.start_drag)
         self.accept("mouse1-up", self.stop_drag)
 
-        self.taskMgr.add(self.rotate_heart, "rotate_heart")
+        self.taskMgr.add(self.rotate_anatomy, "rotate_anatomy")
         self.taskMgr.add(self.update_parallax, "update_parallax")
 
     def set_head_position(self, position):
@@ -115,7 +131,7 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
     def stop_drag(self):
         self.dragging = False
 
-    def rotate_heart(self, task):
+    def rotate_anatomy(self, task):
 
         if self.dragging and self.mouseWatcherNode.hasMouse():
 
@@ -130,12 +146,12 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
 
             # Rotate the heart
             #put 40 for now so that is doesn't move to fast
-            self.heart.setH(
-                self.heart.getH() - dx * 80
+            self.anatomy.setH(
+                self.anatomy.getH() - dx * 80
             )
 
-            self.heart.setP(
-                self.heart.getP() + dy * 80
+            self.anatomy.setP(
+                self.anatomy.getP() + dy * 80
             )
 
             # Remember current mouse position
