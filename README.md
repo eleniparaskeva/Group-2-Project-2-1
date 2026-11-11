@@ -34,3 +34,45 @@ python main.py
 ```
 
 With the Panda 3D window at full screen, move your head left and right in front of the screen to view parallax effect. Make sure to press `Esc` to quit.
+
+## Comparing smoothing
+
+Press **F** while the Panda3D window has focus to cycle through raw output,
+exponential, adaptive exponential, moving average, weighted moving average,
+Butterworth and causal Savitzky-Golay. A popup shows the selected method for two
+seconds. Tracking must be running for a selection to take effect.
+
+Every filter keeps receiving the same raw eye positions, including while another
+filter is selected. Switching does not reset them. Outputs can differ, so a jump
+when switching is expected. Losing the face clears all filter histories; the first
+position after reacquisition is used directly. No filter uses future measurements.
+
+Change these settings in `config.json`, then restart:
+
+| Setting | What it does |
+| --- | --- |
+| `smoothing.adaptive_exponential.alpha` | Adaptive filter's base alpha, from 0 to 1. Lower values smooth more but add lag. |
+| `smoothing.adaptive_exponential.speed_gain` | Extra alpha per cm/s of speed. Set to 0 for fixed exponential smoothing. |
+| `smoothing.initial_method` | Method selected at startup. |
+| `smoothing.cycle_order` | Order of the seven method IDs when pressing the key. Include each once. |
+| `smoothing.cycle_key` | Panda3D key name used to cycle methods; defaults to `f`. |
+| `smoothing.popup_seconds` | How long the selection popup stays visible. |
+| `smoothing.exponential.alpha` | Fixed weight of the new measurement, from 0 to 1. |
+| `smoothing.moving_average.window_size` | Number of recent measurements to average. |
+| `smoothing.weighted_average.weights` | Non-negative weights, oldest to newest; normalized automatically. |
+| `smoothing.butterworth.cutoff_hz` | Cutoff frequency. Lower values smooth more but add lag. |
+| `smoothing.butterworth.order` | Positive integer controlling how sharply higher frequencies are rejected. |
+| `smoothing.butterworth.sample_rate_hz` | Assumed tracking rate, initially 30 Hz; must exceed twice the cutoff. |
+| `smoothing.savitzky_golay.window_size` | Number of recent measurements used for the polynomial fit. |
+| `smoothing.savitzky_golay.polynomial_order` | Polynomial degree, from 0 to window size minus 1. |
+
+Alpha 1 means no exponential smoothing. Alpha 0 with speed gain 0 holds the first
+position. Window filters repeat the first measurement during startup. Savitzky-Golay
+evaluates its fit at the newest sample, which makes it causal, but it can overshoot.
+Butterworth can also overshoot. The window filters count tracking samples, and
+Butterworth assumes equally spaced samples at the configured rate. If tracking
+slows down, their smoothing lasts longer in seconds. Adaptive smoothing measures
+speed using actual timestamps, but its base alpha is still per measurement.
+
+The filter implementations and parameter explanations are in `src/smoothing.py`.
+To run the filter checks without a camera or Panda3D window:

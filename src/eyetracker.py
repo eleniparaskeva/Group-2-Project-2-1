@@ -1,4 +1,5 @@
 import math
+from smoothing import SmoothingComparison
 import os
 import time
 import json
@@ -42,11 +43,12 @@ def draw_point(frame, point, color):
 
 class EyeTracker:
     def __init__(self, config):
+        self.smoothing = SmoothingComparison(config)
         download_model_if_missing(config["model_path"], config["model_url"])
         self.landmarker = create_landmarker(config["model_path"])
         print('Tracker created')
 
-        self.capture = cv2.VideoCapture(config["camera_index"], cv2.CAP_DSHOW)
+        self.capture = cv2.VideoCapture(config["camera_index"], cv2.CAP_ANY)
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, config["frame_width"])
         self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, config["frame_height"])
 
@@ -61,33 +63,15 @@ class EyeTracker:
         self.ipd_cm = config["ipd_cm"]
         self.hvid_cm = config["hvid_cm"]
         self.focal_px = config["focal_px"]
-        self.alpha = config["smoothing_alpha"]
-        self.speed_gain = config["smoothing_speed_gain"]
-        self.previous_raw_position = None
-        self.previous_position_timestamp = None
 
     def compute_position(self):
-        """Compute the eye position in cm and apply adaptive exponential smoothing.
+        """Computes the raw eye position in cm, then update every smoother.
 
-        smoothing_alpha is the base weight of the new position, between 0 and 1.
-        Lower values smooth more but add lag; 1 means no smoothing.
-        We estimate speed in cm/s from consecutive raw positions and their
-        timestamps in milliseconds, then use:
-            alpha = min(1, smoothing_alpha + smoothing_speed_gain * speed)
-            position = alpha * raw_position + (1 - alpha) * old_position
-
-        smoothing_speed_gain must be non-negative. It controls how much alpha
-        increases with speed, in seconds/cm. Faster movement gets less smoothing
-        so it is easier to follow. For example, a gain of 0.01 adds 0.1 to alpha
-        at 10 cm/s. Set the gain to 0 to get the original exponential smoothing.
-        The same alpha is used for x, y and z. The first position is used directly.
-        After losing the face, speed starts from 0 on the next detection, while
-        smoothing still uses the last output. Non-increasing timestamps also
-        use speed 0. The base smoothing remains per update, not per second.
+        Each filter receives the same position and timestamp once per camera
+        measurement. Only the selected output drives the view. For the filter formulas
+        and parameters look in smoothing.py.
         """
         if self.face_found:
-            old_position = self.position
-
             hvid_l = math.hypot(self.points['left_inner'][0] - self.points['left_outer'][0], self.points['left_inner'][1] - self.points['left_outer'][1])
             hvid_r = math.hypot(self.points['right_inner'][0] - self.points['right_outer'][0], self.points['right_inner'][1] - self.points['right_outer'][1])
             avg_hvid_px = (hvid_l + hvid_r) / 2
@@ -107,22 +91,7 @@ class EyeTracker:
             y = -(my - cy) * z_hvid / self.focal_px
             z = z_hvid
 
-            raw_position = (x, y, z)
-            speed = 0.0
-            if self.previous_raw_position is not None and self.previous_position_timestamp is not None:
-                dt = (self.timestamp - self.previous_position_timestamp) / 1000
-                if dt > 0:
-                    speed = math.dist(raw_position, self.previous_raw_position) / dt
-            alpha = min(1.0, self.alpha + self.speed_gain * speed)
-
-            if old_position is not None:
-                x = alpha * x + (1 - alpha) * old_position[0]
-                y = alpha * y + (1 - alpha) * old_position[1]
-                z = alpha * z + (1 - alpha) * old_position[2]
-
-            self.position = (x, y, z) # +x = right, +y = up, +z = forward
-            self.previous_raw_position = raw_position
-            self.previous_position_timestamp = self.timestamp
+            self.position = self.smoothing.update((x, y, z), self.timestamp)
 
     def close(self):
         self.capture.release()
@@ -154,8 +123,7 @@ class EyeTracker:
                 self.points[name] = landmark_to_px(face[index], width, height)
             self.compute_position()
         else:
-            self.previous_raw_position = None
-            self.previous_position_timestamp = None
+            self.smoothing.reset()
 
         return True
 

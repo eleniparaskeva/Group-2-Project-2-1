@@ -1,4 +1,5 @@
 from direct.showbase.ShowBase import ShowBase
+from direct.gui.OnscreenText import OnscreenText
 from panda3d.core import AmbientLight, DirectionalLight, TransparencyAttrib, PointLight
 import simplepbr
 from parallax import apply_parallax
@@ -11,6 +12,11 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
         self.screen_height_cm = screen_height_cm
         self.camera_offset_y_cm = camera_offset_y_cm
         self.head_position = None
+        self.smoothing_popup = OnscreenText(
+            text='', pos=(0, 0.85), scale=0.055,
+            fg=(1, 1, 1, 1), bg=(0, 0, 0, 0.75), mayChange=True
+        )
+        self.smoothing_popup.hide()
         self.disableMouse() #makes sure mouse does not override parallax effect
         self.camLens.setNearFar(1,1000) #how far from the camera does panda start and stop drawing set to cm
 
@@ -111,6 +117,21 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
 
         self.taskMgr.add(self.rotate_anatomy, "rotate_anatomy")
         self.taskMgr.add(self.update_parallax, "update_parallax")
+
+    def show_smoothing_popup(self, name, duration):
+        """Show the selected filter briefly, restarting the timer on each change.
+
+        duration is the popup lifetime in seconds. This runs on the rendering
+        thread after the tracker confirms which method supplies its output.
+        """
+        self.smoothing_popup.setText('Smoothing: ' + name)
+        self.smoothing_popup.show()
+        self.taskMgr.remove('hide_smoothing_popup')
+        self.taskMgr.doMethodLater(duration, self.hide_smoothing_popup, 'hide_smoothing_popup')
+
+    def hide_smoothing_popup(self, task):
+        self.smoothing_popup.hide()
+        return task.done
 
     def set_head_position(self, position):
         self.head_position = position

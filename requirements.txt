@@ -2,3 +2,5 @@ mediapipe
 panda3d
 panda3d-simplepbr
 panda3d-gltf
+numpy
+scipy

@@ -6,9 +6,49 @@
     "hvid_cm": 1.17,
     "focal_px": 486.3,
     "camera_offset_y_cm": 0.0,
-    "smoothing_alpha": 0.5,
-    "smoothing_speed_gain": 0.01,
     "show_visualization": true,
     "model_path": "face_landmarker.task",
-    "model_url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+    "model_url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+    "smoothing": {
+        "initial_method": "adaptive_exponential",
+        "cycle_order": [
+            "raw",
+            "exponential",
+            "adaptive_exponential",
+            "moving_average",
+            "weighted_average",
+            "butterworth",
+            "savitzky_golay"
+        ],
+        "cycle_key": "f",
+        "popup_seconds": 2.0,
+        "exponential": {
+            "alpha": 0.5
+        },
+        "adaptive_exponential": {
+            "alpha": 0.5,
+            "speed_gain": 0.01
+        },
+        "moving_average": {
+            "window_size": 5
+        },
+        "weighted_average": {
+            "weights": [
+                1,
+                2,
+                3,
+                4,
+                5
+            ]
+        },
+        "butterworth": {
+            "cutoff_hz": 3.0,
+            "order": 2,
+            "sample_rate_hz": 30.0
+        },
+        "savitzky_golay": {
+            "window_size": 7,
+            "polynomial_order": 2
+        }
+    }
 }

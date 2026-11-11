@@ -1,10 +1,12 @@
 import threading
+from queue import SimpleQueue, Empty
 from eyetracker import EyeTracker, open_config
 from scene_manager import HeartApp
 
 result_lock = threading.Lock()
 latest_result = None
 stop_tracking = threading.Event()
+smoothing_commands = SimpleQueue()
 
 def eye_tracking(config):
     global latest_result
@@ -14,13 +16,20 @@ def eye_tracking(config):
         tracker = EyeTracker(config)
 
         while not stop_tracking.is_set():
+            # Only the tracking thread changes filter state.
+            while True:
+                try:
+                    smoothing_commands.get_nowait()
+                except Empty:
+                    break
+                tracker.smoothing.cycle()
             if not tracker.update():
                 break
 
             if config["show_visualization"]:
                 tracker.visualize()
 
-            result = tracker.get_result()
+            result = (*tracker.get_result(), tracker.smoothing.name)
 
             with result_lock:
                 latest_result = result
@@ -47,13 +56,20 @@ def main():
     )
 
     app.set_head_position((0, -camera_offset_y_cm, 60))
+    app.accept(config['smoothing']['cycle_key'], smoothing_commands.put, ['cycle'])
+    selected_smoothing = None
     
     def update_view(task):
+        nonlocal selected_smoothing
         with result_lock:
             result = latest_result
 
         if result is not None:
-            position, face_found, timestamp = result
+            position, face_found, timestamp, smoothing_name = result
+
+            if smoothing_name != selected_smoothing:
+                selected_smoothing = smoothing_name
+                app.show_smoothing_popup(smoothing_name, config['smoothing']['popup_seconds'])
 
             if face_found and position is not None:
                 app.set_head_position(position)
@@ -79,4 +95,5 @@ def main():
         tracking_thread.join(timeout=5)
         app.destroy()
 
-main()
+if __name__ == '__main__':
+    main()
