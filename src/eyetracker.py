@@ -62,8 +62,29 @@ class EyeTracker:
         self.hvid_cm = config["hvid_cm"]
         self.focal_px = config["focal_px"]
         self.alpha = config["smoothing_alpha"]
+        self.speed_gain = config["smoothing_speed_gain"]
+        self.previous_raw_position = None
+        self.previous_position_timestamp = None
 
     def compute_position(self):
+        """Compute the eye position in cm and apply adaptive exponential smoothing.
+
+        smoothing_alpha is the base weight of the new position, between 0 and 1.
+        Lower values smooth more but add lag; 1 means no smoothing.
+        We estimate speed in cm/s from consecutive raw positions and their
+        timestamps in milliseconds, then use:
+            alpha = min(1, smoothing_alpha + smoothing_speed_gain * speed)
+            position = alpha * raw_position + (1 - alpha) * old_position
+
+        smoothing_speed_gain must be non-negative. It controls how much alpha
+        increases with speed, in seconds/cm. Faster movement gets less smoothing
+        so it is easier to follow. For example, a gain of 0.01 adds 0.1 to alpha
+        at 10 cm/s. Set the gain to 0 to get the original exponential smoothing.
+        The same alpha is used for x, y and z. The first position is used directly.
+        After losing the face, speed starts from 0 on the next detection, while
+        smoothing still uses the last output. Non-increasing timestamps also
+        use speed 0. The base smoothing remains per update, not per second.
+        """
         if self.face_found:
             old_position = self.position
 
@@ -86,12 +107,22 @@ class EyeTracker:
             y = -(my - cy) * z_hvid / self.focal_px
             z = z_hvid
 
+            raw_position = (x, y, z)
+            speed = 0.0
+            if self.previous_raw_position is not None and self.previous_position_timestamp is not None:
+                dt = (self.timestamp - self.previous_position_timestamp) / 1000
+                if dt > 0:
+                    speed = math.dist(raw_position, self.previous_raw_position) / dt
+            alpha = min(1.0, self.alpha + self.speed_gain * speed)
+
             if old_position is not None:
-                x = self.alpha * x + (1 - self.alpha) * old_position[0]
-                y = self.alpha * y + (1 - self.alpha) * old_position[1]
-                z = self.alpha * z + (1 - self.alpha) * old_position[2]
+                x = alpha * x + (1 - alpha) * old_position[0]
+                y = alpha * y + (1 - alpha) * old_position[1]
+                z = alpha * z + (1 - alpha) * old_position[2]
 
             self.position = (x, y, z) # +x = right, +y = up, +z = forward
+            self.previous_raw_position = raw_position
+            self.previous_position_timestamp = self.timestamp
 
     def close(self):
         self.capture.release()
@@ -122,6 +153,9 @@ class EyeTracker:
             for name, index in LANDMARKS.items():
                 self.points[name] = landmark_to_px(face[index], width, height)
             self.compute_position()
+        else:
+            self.previous_raw_position = None
+            self.previous_position_timestamp = None
 
         return True
 
