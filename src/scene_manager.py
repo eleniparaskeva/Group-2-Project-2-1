@@ -104,6 +104,48 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
         # self.heart.setColor(0.8, 0.1, 0.1, 1)
         #self.heart.setTwoSided(True)
 
+        # Load the transparent body
+        self.body = self.loader.loadModel(
+            "../models/human_body_base_mesh_male.glb"
+        )
+
+        if self.body.isEmpty():
+            print("ERROR: Body model could not be loaded.")
+        else:
+            # Keep the body, heart and ribs together when dragging
+            self.body.reparentTo(self.anatomy)
+
+            # Remove the original skin appearance
+            self.body.setTextureOff(10)
+            self.body.setMaterialOff(10)
+            self.body.setShaderOff(10)
+            self.body.setLightOff(10)
+
+            # Transparent blue surface
+            self.body.setTransparency(TransparencyAttrib.MAlpha, 10)
+            self.body.setColor(0.15, 0.7, 1.0, 0.025, 10)
+            self.body.setDepthWrite(False, 10)
+
+            # Measure the body before scaling it
+            lower, upper = self.body.getTightBounds()
+            centre = (lower + upper) * 0.5
+            height = upper.z - lower.z
+
+            # Adjustable body size and position
+            body_height = 90
+            body_x = 2
+            body_y = 8
+            body_z = -22
+
+            body_scale = body_height / height
+            self.body.setScale(body_scale)
+
+            self.body.setPos(
+                body_x - centre.x * body_scale,
+                body_y - centre.y * body_scale,
+                body_z - centre.z * body_scale
+            )
+        
         # Background
         self.setBackgroundColor(0.003, 0.012, 0.05)
 
