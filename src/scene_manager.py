@@ -5,6 +5,19 @@ import simplepbr
 from parallax import apply_parallax
 
 class HeartApp(ShowBase): #modified to fit screen values needed in apply_parallax
+    def fit_model(self, node, target_cm, axis, pos):
+        node.setPos(0, 0, 0)
+        node.setScale(1)
+        lower, upper = node.getTightBounds()
+        size = upper - lower
+        extent = max(size.x, size.y, size.z) if axis is None else size[axis]
+        scale = target_cm / extent
+        centre = (lower + upper) * 0.5
+        node.setScale(scale)
+        node.setPos(pos[0] - centre.x * scale, pos[1] - centre.y * scale, pos[2] - centre.z * scale)
+
+
+
     def __init__(self, screen_width_cm, screen_height_cm, camera_offset_y_cm):
         super().__init__()
 
@@ -50,13 +63,14 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
         self.heart.reparentTo(self.anatomy)
 
         # Scale the heart
-        self.heart.setScale(7)
+        #self.heart.setScale(7)
 
         # Position the heart
-        self.heart.setPos(5, 10, 2)
+        #self.heart.setPos(5, 10, 2)
 
         # Keep the current orientation
         self.heart.setHpr(-90, 0, 0)
+        self.fit_model(self.heart, 12, None, (3, 8, 2))
 
         #Load the ribcage 
         self.ribs = self.loader.loadModel(
@@ -69,9 +83,10 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
             self.ribs.reparentTo(self.anatomy)
 
         #Initial scale and position (will need adjustment)
-        self.ribs.setScale(40)
-        self.ribs.setPos(2, 8, 0)
+        #self.ribs.setScale(40)
+        #self.ribs.setPos(2, 8, 0)
         self.ribs.setHpr(0, 0, 0)
+        self.fit_model(self.ribs, 26, 0, (0, 8, 0))
 
         #make the rib cage semi-transparent 
         self.ribs.setTransparency(TransparencyAttrib.MAlpha)
@@ -132,8 +147,8 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
             height = upper.z - lower.z
 
             # Adjustable body size and position
-            body_height = 90
-            body_x = 2
+            body_height = 163
+            body_x = 0
             body_y = 8
             body_z = -22
 
