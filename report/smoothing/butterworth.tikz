@@ -1,0 +1,2 @@
+\SmoothingPlot{butterworth}{Butterworth low-pass filter}{%
+  A causal second-order filter with a 3\,Hz cutoff damps rapid fluctuations on each axis. The trace rounds off the rise and briefly overshoots the plateau.}

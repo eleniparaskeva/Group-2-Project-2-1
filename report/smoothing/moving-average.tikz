@@ -1,0 +1,2 @@
+\SmoothingPlot{moving_average}{Moving average}{%
+  Each output is the mean of the five most recent measurements. The rise spreads over several frames because earlier, lower positions still contribute to the average.}

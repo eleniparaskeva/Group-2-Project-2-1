@@ -1,0 +1,2 @@
+\SmoothingPlot{savitzky_golay}{Savitzky--Golay filter}{%
+  A quadratic is fitted by least squares to the last seven positions and evaluated at the newest frame. The fit follows the rise but overshoots when the motion stops.}

@@ -1,0 +1,15 @@
+% Compile in this directory with: pdflatex figures.tex
+% For one picture in a report: load pgfplots, then \input{smoothing/plot-style}
+% in the preamble and e.g. \input{smoothing/butterworth.tikz} in the body.
+\documentclass[tikz,border=2pt]{standalone}
+\usepackage{pgfplots}
+\input{plot-style}
+\begin{document}
+\input{raw.tikz}
+\input{exponential.tikz}
+\input{adaptive-exponential.tikz}
+\input{moving-average.tikz}
+\input{weighted-moving-average.tikz}
+\input{butterworth.tikz}
+\input{savitzky-golay.tikz}
+\end{document}

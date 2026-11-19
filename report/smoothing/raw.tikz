@@ -1,0 +1,2 @@
+\SmoothingPlot{raw}{Raw position}{%
+  The output passes through every measured position. During the initial pause, each small jump in the measurements appears in the trace.}

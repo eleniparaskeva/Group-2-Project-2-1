@@ -1,0 +1,2 @@
+\SmoothingPlot{weighted_average}{Weighted moving average}{%
+  The last five positions get weights $1,2,3,4,5$ from oldest to newest, normalized by $15$. This makes the rise appear sooner than in the equal-weight average.}

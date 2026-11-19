@@ -16,6 +16,10 @@
 *.synctex.gz
 *.toc
 *.vrb
+
+# Generated smoothing figures
+report/smoothing/*.pdf
+report/smoothing/*.png
 *.xdv
 *.pdf
 

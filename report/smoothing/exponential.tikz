@@ -1,0 +1,2 @@
+\SmoothingPlot{exponential}{Fixed exponential smoothing}{%
+  Each estimate gives equal weight to the newest position and the previous estimate ($\alpha=0.5$). This reduces jitter but delays the rise near $0.7$\,s.}

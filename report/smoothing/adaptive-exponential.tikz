@@ -1,0 +1,2 @@
+\SmoothingPlot{adaptive_exponential}{Adaptive exponential smoothing}{%
+  The newest position gets weight $\alpha=\min(1,\,0.5+0.01v)$, with speed $v$ in cm/s. During the sharp rise, the higher weight lets the estimate catch up faster.}

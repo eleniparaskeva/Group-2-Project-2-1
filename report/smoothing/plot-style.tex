@@ -1,0 +1,46 @@
+% Load pgfplots before this file. Define \SmoothingTrace first for other layouts.
+\pgfplotsset{compat=1.18}
+% Resolve the path before pgfplots expands the table filename.
+\IfFileExists{trace.dat}{\providecommand{\SmoothingTrace}{trace.dat}}{%
+  \IfFileExists{smoothing/trace.dat}{\providecommand{\SmoothingTrace}{smoothing/trace.dat}}{%
+    \providecommand{\SmoothingTrace}{report/smoothing/trace.dat}}}
+\definecolor{smInk}{HTML}{263743}
+\definecolor{smAxis}{HTML}{586872}
+\definecolor{smGrid}{HTML}{DCE3E5}
+\definecolor{smSample}{HTML}{A85433}
+\definecolor{smLine}{HTML}{006E78}
+% Arguments: data column, title, caption. Lines connect successive outputs.
+\newcommand{\SmoothingPlot}[3]{%
+  \begin{tikzpicture}[x=1cm,y=1cm,font=\sffamily,text=smInk]
+    \path[use as bounding box] (0,-0.62) rectangle (13,6.65);
+    \node[anchor=west,inner sep=0,font=\sffamily\bfseries\LARGE]
+      at (0.28,6.15) {#2};
+    \node[anchor=west,inner sep=0,font=\sffamily\small,text=smAxis]
+      at (0.28,5.50) {Horizontal position (cm)};
+    \fill[smSample] (8.04,5.50) circle[radius=1.6pt];
+    \node[anchor=west,inner sep=0,font=\sffamily\small]
+      at (8.21,5.50) {Measurement};
+    \draw[smLine,line width=1.35pt] (10.90,5.50) -- (11.36,5.50);
+    \node[anchor=west,inner sep=0,font=\sffamily\small]
+      at (11.51,5.50) {Output};
+    \begin{axis}[
+        at={(0.73cm,1.89cm)},anchor=south west,scale only axis,
+        width=11.90cm,height=3.21cm,
+        xmin=-0.015,xmax=2.015,ymin=-0.6,ymax=4.85,
+        xtick={0,0.5,1,1.5,2},ytick={0,2,4},
+        tick label style={font=\sffamily\footnotesize,text=smAxis},
+        tick align=outside,major tick length=2pt,tick style={smAxis},
+        axis lines*=left,axis line style={smAxis!65},
+        ymajorgrids,major grid style={smGrid},clip marker paths=false]
+      \addplot[smLine,line width=1.35pt,no marks,line join=round]
+        table[x=time,y=#1]{\SmoothingTrace};
+      \addplot[only marks,mark=*,mark size=1.55pt,
+        mark options={fill=smSample,draw=white,line width=0.25pt}]
+        table[x=time,y=raw]{\SmoothingTrace};
+    \end{axis}
+    \node[anchor=center,inner sep=0,font=\sffamily\small,text=smAxis]
+      at (6.68,1.23) {Time (s)};
+    \node[anchor=north west,inner sep=0,align=left,text width=12.45cm,
+      font=\sffamily\normalsize] at (0.28,0.92) {#3};
+  \end{tikzpicture}%
+}
