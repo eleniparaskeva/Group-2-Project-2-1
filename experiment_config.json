@@ -1,0 +1,8 @@
+{
+    "experiment": "E4_latency",
+    "duration_s": 30,
+    "warmup_s": 10,
+    "close_when_done": true,
+    "folder": "../results",
+    "notes": ""
+}

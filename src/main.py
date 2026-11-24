@@ -1,4 +1,7 @@
 import threading
+import time
+from panda3d.core import ClockObject
+from logger import Logger, load_experiment_config
 from queue import SimpleQueue, Empty
 from eyetracker import EyeTracker, open_config
 from scene_manager import HeartApp
@@ -8,7 +11,7 @@ latest_result = None
 stop_tracking = threading.Event()
 smoothing_commands = SimpleQueue()
 
-def eye_tracking(config):
+def eye_tracking(config, logger):
     global latest_result
     tracker = None
 
@@ -25,6 +28,17 @@ def eye_tracking(config):
                 tracker.smoothing.cycle()
             if not tracker.update():
                 break
+
+            if logger is not None and logger.is_measuring():
+                logger.add_tracking_row(
+                    tracker.face_found,
+                    tracker.times,
+                    tracker.raw_position,
+                    tracker.z_hvid,
+                    tracker.z_ipd,
+                    tracker.position,
+                    tracker.smoothing.name
+                )
 
             if config["show_visualization"]:
                 tracker.visualize()
@@ -44,10 +58,16 @@ def eye_tracking(config):
 def main():
     config = open_config()
 
-    # values are different for each screen
-    screen_width_cm = 34.5
-    screen_height_cm = 19.4
-    camera_offset_y_cm = 10.7 
+    # screen values are in config.json now
+    screen_width_cm = config["screen_width_cm"]
+    screen_height_cm = config["screen_height_cm"]
+    camera_offset_y_cm = config["camera_offset_y_cm"]
+
+    logger = None
+    experiment_config = None
+    if config["logging_enabled"]:
+        experiment_config = load_experiment_config()
+        logger = Logger(config, experiment_config)
 
     app = HeartApp(
         screen_width_cm,
@@ -58,6 +78,7 @@ def main():
     app.set_head_position((0, -camera_offset_y_cm, 60))
     app.accept(config['smoothing']['cycle_key'], smoothing_commands.put, ['cycle'])
     selected_smoothing = None
+    clock = ClockObject.getGlobalClock()
     
     def update_view(task):
         nonlocal selected_smoothing
@@ -74,13 +95,22 @@ def main():
             if face_found and position is not None:
                 app.set_head_position(position)
 
+            if logger is not None:
+                if logger.is_measuring():
+                    frame_ms = clock.getDt() * 1000
+                    data_age_ms = time.monotonic() * 1000 - timestamp
+                    logger.add_render_row(frame_ms, data_age_ms, face_found)
+
+                elif logger.is_done() and experiment_config["close_when_done"]:
+                    app.userExit()
+
         return task.cont
 
     app.taskMgr.add(update_view, "receive_tracking", sort=-10)
 
     tracking_thread = threading.Thread(
         target=eye_tracking,
-        args=(config,),
+        args=(config, logger),
         daemon=True
     )
 
@@ -93,6 +123,13 @@ def main():
     finally:
         stop_tracking.set()
         tracking_thread.join(timeout=5)
+
+        if logger is not None:
+            if logger.is_done():
+                logger.save()
+            else:
+                print("experiment abrupted, nothing saved")
+
         app.destroy()
 
 if __name__ == '__main__':

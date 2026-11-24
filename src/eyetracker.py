@@ -63,6 +63,10 @@ class EyeTracker:
         self.ipd_cm = config["ipd_cm"]
         self.hvid_cm = config["hvid_cm"]
         self.focal_px = config["focal_px"]
+        self.times = {'camera_read': 0, 'preprocess': 0, 'landmarker_detection': 0, 'position_calculation': 0, 'smoothing': 0}
+        self.raw_position = None
+        self.z_hvid = None
+        self.z_ipd = None
 
     def compute_position(self):
         """Computes the raw eye position in cm, then update every smoother.
@@ -75,23 +79,21 @@ class EyeTracker:
             hvid_l = math.hypot(self.points['left_inner'][0] - self.points['left_outer'][0], self.points['left_inner'][1] - self.points['left_outer'][1])
             hvid_r = math.hypot(self.points['right_inner'][0] - self.points['right_outer'][0], self.points['right_inner'][1] - self.points['right_outer'][1])
             avg_hvid_px = (hvid_l + hvid_r) / 2
-            print('left diameter: %s, right diameter: %s, avg diameter: %s' % (hvid_l, hvid_r, avg_hvid_px))
+            self.z_hvid = self.focal_px * self.hvid_cm / avg_hvid_px
+
             ipd_px = math.hypot(self.points['left_center'][0] - self.points['right_center'][0], self.points['right_center'][1] - self.points['left_center'][1])
-            print('inter pupil distance: %s' % ipd_px)
-            z_ipd = self.focal_px * self.ipd_cm / ipd_px
-            z_hvid = self.focal_px * self.hvid_cm / avg_hvid_px
-            print('z from ipd: %s, z from hvid: %s' % (z_ipd, z_hvid))
+            self.z_ipd = self.focal_px * self.ipd_cm / ipd_px
 
             (mx, my) = ((self.points['left_center'][0] + self.points['right_center'][0]) / 2, (self.points['left_center'][1] + self.points['right_center'][1]) / 2)
 
             height, width = self.frame.shape[:2]
             (cx, cy) = (width / 2, height / 2)
 
-            x = -(mx - cx) * z_hvid / self.focal_px
-            y = -(my - cy) * z_hvid / self.focal_px
-            z = z_hvid
+            x = -(mx - cx) * self.z_hvid / self.focal_px
+            y = -(my - cy) * self.z_hvid / self.focal_px
+            z = self.z_hvid
 
-            self.position = self.smoothing.update((x, y, z), self.timestamp)
+            self.raw_position = (x, y, z)
 
     def close(self):
         self.capture.release()
@@ -100,7 +102,10 @@ class EyeTracker:
 
 
     def update(self):
+        t_start = time.perf_counter()
         ok, self.frame = self.capture.read()
+        t_read = time.perf_counter()
+        self.times['camera_read'] = (t_read - t_start) * 1000
         self.timestamp = int(time.monotonic() * 1000)
 
         if not ok:
@@ -112,8 +117,12 @@ class EyeTracker:
         rgb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
         image_format = mediapipe.ImageFormat.SRGB
         mediapipe_image = mediapipe.Image(image_format=image_format, data=rgb)
+        t_prep = time.perf_counter()
+        self.times['preprocess'] = (t_prep - t_read) * 1000
 
         result = (self.landmarker.detect_for_video(mediapipe_image, self.timestamp))
+        t_detect = time.perf_counter()
+        self.times['landmarker_detection'] = (t_detect - t_prep) * 1000
         self.face_found = len(result.face_landmarks) > 0
 
         if self.face_found:
@@ -122,9 +131,15 @@ class EyeTracker:
             for name, index in LANDMARKS.items():
                 self.points[name] = landmark_to_px(face[index], width, height)
             self.compute_position()
+            t_pos = time.perf_counter()
+            self.times['position_calculation'] = (t_pos - t_detect) * 1000
+            self.position = self.smoothing.update(self.raw_position, self.timestamp)
         else:
+            t_pos = t_detect
+            self.times['position_calculation'] = 0
             self.smoothing.reset()
-
+        t_smooth = time.perf_counter()
+        self.times['smoothing'] = (t_smooth - t_pos) * 1000
         return True
 
     def get_position(self):

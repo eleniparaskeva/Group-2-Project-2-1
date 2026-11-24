@@ -1,5 +1,8 @@
 {
     "camera_index": 0,
+    "screen_width_cm": 34.5,
+    "screen_height_cm": 19.4,
+    "camera_offset_y_cm": 10.4,
     "frame_width": 640,
     "frame_height": 480,
     "ipd_cm": 6.3,
@@ -7,6 +10,7 @@
     "focal_px": 486.3,
     "camera_offset_y_cm": 0.0,
     "show_visualization": true,
+    "logging_enabled": false,
     "model_path": "face_landmarker.task",
     "model_url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
     "smoothing": {
