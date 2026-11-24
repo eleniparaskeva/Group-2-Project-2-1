@@ -1,7 +1,7 @@
 import threading
 import time
 from panda3d.core import ClockObject
-from src.model.logger import Logger, load_experiment_config
+from logger import Logger, load_experiment_config
 from queue import SimpleQueue, Empty
 from model.eyetracker import EyeTracker, open_config
 from view.scene_manager import HeartApp

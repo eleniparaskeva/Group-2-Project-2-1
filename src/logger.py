@@ -14,7 +14,7 @@ SLOW_FRAME_MS = 1000 / 60
 
 
 def load_experiment_config():
-    with open("../../experiment_config.json") as f:
+    with open("../experiment_config.json") as f:
         experiment_config = json.load(f)
         return experiment_config
 

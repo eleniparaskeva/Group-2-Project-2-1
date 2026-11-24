@@ -1,7 +1,7 @@
 import json
 import cv2
 import numpy as np
-from eyetracker import open_config
+from model.eyetracker import open_config
 
 BOARD_COLS = 8
 BOARD_ROWS = 6
