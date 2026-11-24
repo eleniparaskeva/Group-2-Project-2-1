@@ -26,3 +26,4 @@ report/smoothing/*.png
 __pycache__
 .venv/
 .vscode/
+.idea/
