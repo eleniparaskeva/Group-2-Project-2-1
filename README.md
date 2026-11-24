@@ -18,7 +18,7 @@ python -m pip install -r requirements.txt
 To run the prototype you need to do the following things:
 
 1. In `config.json` set `"show_visualization"` to `true` to show a debug window of our eyetracking or `false` to hide it
-2. In `src/main.py` set the three screen values at the top of `main()` to the one of your monitor in cm
+2. In `src/controller.py` set the three screen values at the top of `main()` to the one of your monitor in cm
 
 ```python
 screen_width_cm = ...       # visible display width of your monitor
@@ -30,7 +30,7 @@ camera_offset_y_cm = ...    # webcam lens height above the display's centre
 
 ``` bash
 cd src
-python main.py
+python controller.py
 ```
 
 With the Panda 3D window at full screen, move your head left and right in front of the screen to view parallax effect. Make sure to press `Esc` to quit.
@@ -74,5 +74,5 @@ Butterworth assumes equally spaced samples at the configured rate. If tracking
 slows down, their smoothing lasts longer in seconds. Adaptive smoothing measures
 speed using actual timestamps, but its base alpha is still per measurement.
 
-The filter implementations and parameter explanations are in `src/smoothing.py`.
+The filter implementations and parameter explanations are in `src/model/smoothing.py`.
 To run the filter checks without a camera or Panda3D window:

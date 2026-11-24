@@ -2,7 +2,7 @@ from direct.showbase.ShowBase import ShowBase
 from direct.gui.OnscreenText import OnscreenText
 from panda3d.core import AmbientLight, DirectionalLight, TransparencyAttrib, PointLight
 import simplepbr
-from parallax import apply_parallax
+from view.parallax import apply_parallax
 
 class HeartApp(ShowBase): #modified to fit screen values needed in apply_parallax
     def fit_model(self, node, target_cm, axis, pos):
@@ -53,7 +53,7 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
         
         # Load the anatomical heart
         self.heart = self.loader.loadModel(
-            "../models/human_heart_internal_structure_3d_model.glb"
+            "resources/models/human_heart_internal_structure_3d_model.glb"
         )
 
         if self.heart.isEmpty():
@@ -74,7 +74,7 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
 
         #Load the ribcage 
         self.ribs = self.loader.loadModel(
-            "../models/chest.glb"
+            "resources/models/chest.glb"
         )
 
         if self.ribs.isEmpty():
@@ -121,7 +121,7 @@ class HeartApp(ShowBase): #modified to fit screen values needed in apply_paralla
 
         # Load the transparent body
         self.body = self.loader.loadModel(
-            "../models/human_body_base_mesh_male.glb"
+            "resources/models/human_body_base_mesh_male.glb"
         )
 
         if self.body.isEmpty():

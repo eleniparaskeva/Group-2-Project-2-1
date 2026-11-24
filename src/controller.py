@@ -1,10 +1,10 @@
 import threading
 import time
 from panda3d.core import ClockObject
-from logger import Logger, load_experiment_config
+from src.model.logger import Logger, load_experiment_config
 from queue import SimpleQueue, Empty
-from eyetracker import EyeTracker, open_config
-from scene_manager import HeartApp
+from model.eyetracker import EyeTracker, open_config
+from view.scene_manager import HeartApp
 
 result_lock = threading.Lock()
 latest_result = None
