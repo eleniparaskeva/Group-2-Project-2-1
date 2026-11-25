@@ -5,9 +5,7 @@ As you move your head from left and right in front of the screen a different ang
 
 ## Requirements
 
-In the `requirements.txt` you can view all the dependencies needed to be downloaded to run the prototype.
-Please use a Windows device with a webcam.
-Run this in the terminal to download them:
+To run the application, **Python version 3.14 is required!** To install the necessary packages, use pip:
 
 ``` bash
 python -m pip install -r requirements.txt
