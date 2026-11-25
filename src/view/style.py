@@ -2,6 +2,7 @@ import os
 from panda3d.core import SamplerState, LineSegs, TransparencyAttrib, TextNode
 from direct.gui.DirectGui import DirectFrame
 from direct.gui.OnscreenText import OnscreenText
+from direct.gui import DirectGuiGlobals as DGG
 
 def hex_to_color(hex_string, alpha=1.0):
     hex_string = hex_string.lstrip("#")
@@ -17,6 +18,17 @@ RED = hex_to_color("#D62839")         # title shadow, labels, values, progress
 DARK_RED = hex_to_color("#5C0A1A")    # shadow under red things
 GRID = hex_to_color("#FFFFFF", 0.07)  # background grid lines
 TRANSPARENT = (0, 0, 0, 0)
+
+
+def to_linear(color):
+    # simplepbr gamma corrects the window background, so it comes out lighter than the gui, converting the color from sRGB to linear first cancels that out
+    result = []
+    for c in color[:3]:
+        if c <= 0.04045:
+            result.append(c / 12.92)
+        else:
+            result.append(((c + 0.055) / 1.055) ** 2.4)
+    return (result[0], result[1], result[2], color[3])
 
 SHADOW_OFFSET = 0.025
 BORDER_WIDTH = 0.012
@@ -121,6 +133,37 @@ def make_grid(base, cell_size=0.1):
     grid.setTransparency(TransparencyAttrib.MAlpha)
     grid.setBin("background", 0)
     return grid
+
+
+class PixelButton:
+    def __init__(self, parent, text, pos, width, height, on_click, on_hover):
+        self.text = text
+        self.root = parent.attachNewNode("button_" + text)
+        self.root.setPos(pos[0], 0, pos[1])
+
+        self.box = pixel_box(self.root, -width / 2, width / 2, -height / 2, height / 2)
+
+        text_scale = height * 0.4
+        self.label = OnscreenText(
+            parent=self.box, text=text, scale=text_scale,
+            pos=(-width / 2 + 0.05, -text_scale * 0.4),
+            fg=WHITE, font=title_font, align=TextNode.ALeft, mayChange=True
+        )
+
+        self.box["state"] = DGG.NORMAL
+        self.box.bind(DGG.B1PRESS, lambda event: on_click())
+        self.box.bind(DGG.ENTER, lambda event: on_hover())
+
+    def set_selected(self, selected):
+        if selected:
+            self.box["frameColor"] = WHITE
+            self.label.setFg(RED)
+            self.label.setText("> " + self.text)
+        else:
+            self.box["frameColor"] = BLUE
+            self.label.setFg(WHITE)
+            self.label.setText("  " + self.text)
+
 
 
 def main():
