@@ -1,6 +1,6 @@
 import threading
 from queue import SimpleQueue, Empty
-from eyetracker import EyeTracker
+from model.eyetracker import EyeTracker
 
 
 class TrackingService:

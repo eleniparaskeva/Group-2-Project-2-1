@@ -1,5 +1,5 @@
 import math
-from smoothing import SmoothingComparison
+from model.smoothing import SmoothingComparison
 import os
 import time
 import json
