@@ -5,55 +5,6 @@ from model.eyetracker import open_config
 from tracking import TrackingService
 from view.scene_manager import HeartApp
 
-result_lock = threading.Lock()
-latest_result = None
-stop_tracking = threading.Event()
-smoothing_commands = SimpleQueue()
-
-def eye_tracking(config, logger):
-    global latest_result
-    tracker = None
-
-    try:
-        tracker = EyeTracker(config)
-
-        while not stop_tracking.is_set():
-            # Only the tracking thread changes filter state.
-            while True:
-                try:
-                    smoothing_commands.get_nowait()
-                except Empty:
-                    break
-                tracker.smoothing.cycle()
-            if not tracker.update():
-                break
-
-            if logger is not None and logger.is_measuring():
-                logger.add_tracking_row(
-                    tracker.face_found,
-                    tracker.times,
-                    tracker.raw_position,
-                    tracker.z_hvid,
-                    tracker.z_ipd,
-                    tracker.position,
-                    tracker.smoothing.name
-                )
-
-            if config["show_visualization"]:
-                tracker.visualize()
-
-            result = (*tracker.get_result(), tracker.smoothing.name)
-
-            with result_lock:
-                latest_result = result
-
-    except Exception as error:
-        print("Eye tracking error:", error)
-
-    finally:
-        if tracker is not None:
-            tracker.close()
-
 def main():
     config = open_config()
 
