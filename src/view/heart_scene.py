@@ -1,0 +1,260 @@
+from direct.showbase.DirectObject import DirectObject
+from direct.gui.OnscreenText import OnscreenText
+from panda3d.core import AmbientLight, DirectionalLight, TransparencyAttrib, PointLight
+from view.parallax import apply_parallax
+
+class HeartScene(DirectObject):
+
+    def fit_model(self, node, target_cm, axis, pos):
+        node.setPos(0, 0, 0)
+        node.setScale(1)
+        lower, upper = node.getTightBounds()
+        size = upper - lower
+        extent = max(size.x, size.y, size.z) if axis is None else size[axis]
+        scale = target_cm / extent
+        centre = (lower + upper) * 0.5
+        node.setScale(scale)
+        node.setPos(pos[0] - centre.x * scale, pos[1] - centre.y * scale, pos[2] - centre.z * scale)
+
+
+
+    def __init__(self, base, screen_width_cm, screen_height_cm, camera_offset_y_cm):
+        super().__init__()
+
+        # shortcuts to the App, so the code below works the same as before
+        self.base = base
+        self.loader = base.loader
+        self.render = base.render
+        self.taskMgr = base.taskMgr
+        self.camera = base.camera
+        self.camLens = base.camLens
+        self.mouseWatcherNode = base.mouseWatcherNode
+
+        self.screen_width_cm = screen_width_cm
+        self.screen_height_cm = screen_height_cm
+        self.camera_offset_y_cm = camera_offset_y_cm
+        self.head_position = None
+        self.smoothing_popup = OnscreenText(
+            text='', pos=(0, 0.85), scale=0.055,
+            fg=(1, 1, 1, 1), bg=(0, 0, 0, 0.75), mayChange=True
+        )
+        self.smoothing_popup.hide()
+        self.dragging = False
+
+        # Ambient light
+        ambient = AmbientLight("ambient")
+        ambient.setColor((0.4, 0.4, 0.4, 1))
+        ambient_np = render.attachNewNode(ambient)
+        render.setLight(ambient_np)
+
+        # Main directional light
+        directional = DirectionalLight("directional")
+        directional.setColor((1, 1, 1, 1))
+        directional_np = render.attachNewNode(directional)
+        directional_np.setHpr(-45, -30, 0)
+        render.setLight(directional_np)
+
+        #Create a parent for the anatomical models
+        self.anatomy = self.render.attachNewNode("anatomy")
+        
+        # Load the anatomical heart
+        self.heart = self.loader.loadModel(
+            "resources/models/human_heart_internal_structure_3d_model.glb"
+        )
+
+        if self.heart.isEmpty():
+            print("ERROR: Heart model could not be loaded.")
+            return
+
+        self.heart.reparentTo(self.anatomy)
+
+        # Scale the heart
+        #self.heart.setScale(7)
+
+        # Position the heart
+        #self.heart.setPos(5, 10, 2)
+
+        # Keep the current orientation
+        self.heart.setHpr(-90, 0, 0)
+        self.fit_model(self.heart, 12, None, (3, 8, 2))
+
+        #Load the ribcage 
+        self.ribs = self.loader.loadModel(
+            "resources/models/chest.glb"
+        )
+
+        if self.ribs.isEmpty():
+            print("ERROR:Ribs model could not be loaded.")
+        else: 
+            self.ribs.reparentTo(self.anatomy)
+
+        #Initial scale and position (will need adjustment)
+        #self.ribs.setScale(40)
+        #self.ribs.setPos(2, 8, 0)
+        self.ribs.setHpr(0, 0, 0)
+        self.fit_model(self.ribs, 26, 0, (0, 8, 0))
+
+        #make the rib cage semi-transparent 
+        self.ribs.setTransparency(TransparencyAttrib.MAlpha)
+
+        #light blue colour with trannsparency
+        self.ribs.setColor(0.55, 0.85, 1.0, 1.0)
+
+        #enable transparency 
+        self.ribs.setAlphaScale(0.35)
+
+        #left blue side light (we can remove it we don't like it )
+        left_light = PointLight("left_blue_light")
+        left_light.setColor((0.35, 0.7, 1.0, 1))
+
+        left_light_np = self.anatomy.attachNewNode(left_light)
+        left_light_np.setPos(-12, 0, 0)
+
+        self.ribs.setLight(left_light_np)
+
+        #right blue side light 
+        right_light = PointLight("right_blue_light")
+        right_light.setColor((0.35, 0.7, 1.0, 1))
+
+        right_light_np = self.anatomy.attachNewNode(right_light)
+        right_light_np.setPos(12, 0, 0)
+
+        self.ribs.setLight(right_light_np)
+
+        # Temporary color so we can clearly see the geometry
+        # self.heart.setColor(0.8, 0.1, 0.1, 1)
+        #self.heart.setTwoSided(True)
+
+        # Load the transparent body
+        self.body = self.loader.loadModel(
+            "resources/models/human_body_base_mesh_male.glb"
+        )
+
+        if self.body.isEmpty():
+            print("ERROR: Body model could not be loaded.")
+        else:
+            # Keep the body, heart and ribs together when dragging
+            self.body.reparentTo(self.anatomy)
+
+            # Remove the original skin appearance
+            self.body.setTextureOff(10)
+            self.body.setMaterialOff(10)
+            self.body.setShaderOff(10)
+            self.body.setLightOff(10)
+
+            # Transparent blue surface
+            self.body.setTransparency(TransparencyAttrib.MAlpha, 10)
+            self.body.setColor(0.15, 0.7, 1.0, 0.025, 10)
+            self.body.setDepthWrite(False, 10)
+
+            # Measure the body before scaling it
+            lower, upper = self.body.getTightBounds()
+            centre = (lower + upper) * 0.5
+            height = upper.z - lower.z
+
+            # Adjustable body size and position
+            body_height = 163
+            body_x = 0
+            body_y = 8
+            body_z = -22
+
+            body_scale = body_height / height
+            self.body.setScale(body_scale)
+
+            self.body.setPos(
+                body_x - centre.x * body_scale,
+                body_y - centre.y * body_scale,
+                body_z - centre.z * body_scale
+            )
+        
+        # Mouse interaction
+        self.dragging = False
+        self.last_mouse_x = 0
+        self.last_mouse_y = 0
+
+        # nothing is visible until show() is called
+        self.anatomy.hide()
+
+    def show(self):
+        # Background
+        self.base.setBackgroundColor(0.003, 0.012, 0.05)
+        self.anatomy.show()
+
+        self.accept("mouse1", self.start_drag)
+        self.accept("mouse1-up", self.stop_drag)
+
+        self.taskMgr.add(self.rotate_anatomy, "rotate_anatomy")
+        self.taskMgr.add(self.update_parallax, "update_parallax")
+
+    def hide(self):
+        self.anatomy.hide()
+        self.smoothing_popup.hide()
+        self.dragging = False
+
+        self.ignoreAll()
+        self.taskMgr.remove("rotate_anatomy")
+        self.taskMgr.remove("update_parallax")
+        self.taskMgr.remove("hide_smoothing_popup")
+
+    def show_smoothing_popup(self, name, duration):
+        """Show the selected filter briefly, restarting the timer on each change.
+
+        duration is the popup lifetime in seconds. This runs on the rendering
+        thread after the tracker confirms which method supplies its output.
+        """
+        self.smoothing_popup.setText('Smoothing: ' + name)
+        self.smoothing_popup.show()
+        self.taskMgr.remove('hide_smoothing_popup')
+        self.taskMgr.doMethodLater(duration, self.hide_smoothing_popup, 'hide_smoothing_popup')
+
+    def hide_smoothing_popup(self, task):
+        self.smoothing_popup.hide()
+        return task.done
+
+    def set_head_position(self, position):
+        self.head_position = position
+
+    def update_parallax(self, task): #added apply_parallax method
+        if self.head_position is not None:
+            apply_parallax(self.camera, self.camLens, self.head_position, self.screen_width_cm, self.screen_height_cm, self.camera_offset_y_cm)
+        return task.cont
+
+    def start_drag(self):
+        if self.mouseWatcherNode.hasMouse():
+            mouse = self.mouseWatcherNode.getMouse()
+
+            self.dragging = True
+            self.last_mouse_x = mouse.getX()
+            self.last_mouse_y = mouse.getY()
+
+    def stop_drag(self):
+        self.dragging = False
+
+    def rotate_anatomy(self, task):
+
+        if self.dragging and self.mouseWatcherNode.hasMouse():
+
+            mouse = self.mouseWatcherNode.getMouse()
+
+            current_x = mouse.getX()
+            current_y = mouse.getY()
+
+            # Calculate mouse movement
+            dx = current_x - self.last_mouse_x
+            dy = current_y - self.last_mouse_y
+
+            # Rotate the heart
+            #put 40 for now so that is doesn't move to fast
+            self.anatomy.setH(
+                self.anatomy.getH() - dx * 80
+            )
+
+            self.anatomy.setP(
+                self.anatomy.getP() + dy * 80
+            )
+
+            # Remember current mouse position
+            self.last_mouse_x = current_x
+            self.last_mouse_y = current_y
+
+        return task.cont
