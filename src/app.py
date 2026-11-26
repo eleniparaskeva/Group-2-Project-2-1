@@ -5,6 +5,7 @@ from tracking import TrackingService
 from view import style
 from screens.menu_screen import MenuScreen
 from screens.launch_screen import LaunchScreen
+from screens.calibrate_screen import CalibrateScreen
 
 
 class App(ShowBase):
@@ -27,6 +28,7 @@ class App(ShowBase):
         self.screens = {
             "menu": MenuScreen(self),
             "launch": LaunchScreen(self),
+            "calibrate": CalibrateScreen(self),
         }
         self.current_screen = None
         self.switch_to("menu")

@@ -6,7 +6,7 @@ from view.style import PixelButton
 # (button text, screen to switch to), None means not implemented yet
 MENU_ITEMS = [
     ("LAUNCH", "launch"),
-    ("CALIBRATE", None),
+    ("CALIBRATE", "calibrate"),
     ("EXPERIMENT", None),
     ("QUIT", "quit"),
 ]
